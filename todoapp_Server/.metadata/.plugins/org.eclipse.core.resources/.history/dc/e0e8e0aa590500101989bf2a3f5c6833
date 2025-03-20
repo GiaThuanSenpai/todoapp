@@ -1,0 +1,15 @@
+package com.example.repository;
+
+@Repository
+public interface TaskRepository extends JpaRepository<Task, Long> {
+    Page<Task> findByStatus(Status status, Pageable pageable);
+    
+    Page<Task> findByPriority(Priority priority, Pageable pageable);
+    
+    Page<Task> findByStatusAndPriority(Status status, Priority priority, Pageable pageable);
+    
+    List<Task> findByDueDateBeforeAndStatusNot(LocalDateTime date, Status status);
+    
+    List<Task> findByDueDateBetweenAndStatusNot(LocalDateTime start, LocalDateTime end, Status status);
+}
+

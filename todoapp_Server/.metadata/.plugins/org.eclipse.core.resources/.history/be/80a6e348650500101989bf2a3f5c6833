@@ -1,0 +1,68 @@
+package com.example.service;
+
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+
+import com.example.entities.Task;
+import com.example.enums.Priority;
+import com.example.enums.Status;
+import com.example.exception.ResourceNotFoundException;
+import com.example.repository.TaskRepository;
+
+@Service
+public class TaskService {
+
+    @Autowired
+    private TaskRepository taskRepository;
+
+    public Task createTask(Task task) {
+        return taskRepository.save(task);
+    }
+
+    @Cacheable(value = "taskCache", key = "#id")
+    public Task getTaskById(UUID id) {
+        return taskRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
+    }
+
+    @Cacheable(value = "tasksCache", key = "{#status, #priority, #pageable?.pageNumber ?: 0, #pageable?.pageSize ?: 10}")
+    public Page<Task> getTasks(Status status, Priority priority, Pageable pageable) {
+        if (status != null && priority != null) {
+            return taskRepository.findByStatusAndPriority(status, priority, pageable);
+        } else if (status != null) {
+            return taskRepository.findByStatus(status, pageable);
+        } else if (priority != null) {
+            return taskRepository.findByPriority(priority, pageable);
+        } else {
+            return taskRepository.findAll(pageable);
+        }
+    }
+
+    @CacheEvict(value = "taskCache", key = "#id")
+    public Task updateTask(UUID id, Task taskDetails) {
+        Task task = getTaskById(id);
+        
+        task.setTitle(taskDetails.getTitle());
+        task.setDescription(taskDetails.getDescription());
+        task.setDueDate(taskDetails.getDueDate());
+        task.setPriority(taskDetails.getPriority());
+        task.setStatus(taskDetails.getStatus());
+        
+        return taskRepository.save(task);
+    }
+
+    @CacheEvict(value = {"taskCache", "tasksCache"}, allEntries = true)
+    public void deleteTask(UUID id) {
+        Task task = getTaskById(id);
+        taskRepository.delete(task);
+    }
+}
+

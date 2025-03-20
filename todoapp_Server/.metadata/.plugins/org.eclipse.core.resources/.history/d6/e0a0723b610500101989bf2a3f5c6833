@@ -1,0 +1,25 @@
+package com.example.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.web.SecurityFilterChain;
+
+@Configuration
+@EnableWebSecurity
+public class AppConfig {
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/tasks/**").permitAll() // Mở public cho /tasks/**
+                .anyRequest().permitAll() // Tạm thời cho phép tất cả để test (sau này đổi lại nếu cần)
+            )
+            .csrf().disable()
+            .httpBasic().disable() // Tắt Basic Auth hoàn toàn
+            .formLogin().disable(); // Tắt Form Login mặc định
+        return http.build();
+    }
+}

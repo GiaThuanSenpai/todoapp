@@ -1,0 +1,35 @@
+package com.example.entities;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import com.example.enums.NotificationType;
+
+@Entity
+@Table(name = "notifications", indexes = {
+    @Index(name = "idx_task_id", columnList = "task_id"),
+    @Index(name = "idx_type", columnList = "type"),
+    @Index(name = "idx_is_read", columnList = "isRead"),
+    @Index(name = "idx_created_at", columnList = "createdAt")
+})
+@Data
+public class Notification {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID notificationId;
+
+    @ManyToOne
+    @JoinColumn(name = "task_id", nullable = false)
+    private Task task;
+
+    @Enumerated(EnumType.STRING)
+    private NotificationType type;
+
+    private String message;
+
+    private boolean isRead = false;
+
+    private LocalDateTime createdAt = LocalDateTime.now();
+}

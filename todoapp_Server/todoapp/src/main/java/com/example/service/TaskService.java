@@ -1,0 +1,88 @@
+package com.example.service;
+
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+
+import com.example.entities.Task;
+import com.example.enums.Priority;
+import com.example.enums.Status;
+import com.example.exception.ResourceNotFoundException;
+import com.example.repository.TaskRepository;
+
+import jakarta.persistence.EntityNotFoundException;
+
+@Service
+public class TaskService {
+
+	@Autowired
+	private TaskRepository taskRepository;
+
+	@CacheEvict(value = { "tasksCache", "taskCache" }, allEntries = true) // Xóa toàn bộ cache
+	public Task createTask(Task task) {
+		return taskRepository.save(task);
+	}
+
+	@Cacheable(value = "taskCache", key = "#task.id")
+	public Task getTaskById(UUID id) {
+		return taskRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
+	}
+
+	@Cacheable(value = "tasksCache", key = "{#status, #priority, #pageable?.pageNumber ?: 0, #pageable?.pageSize ?: 10}")
+	public Page<Task> getTasks(Status status, Priority priority, Pageable pageable) {
+		if (status != null && priority != null) {
+			return taskRepository.findByStatusAndPriority(status, priority, pageable);
+		} else if (status != null) {
+			return taskRepository.findByStatus(status, pageable);
+		} else if (priority != null) {
+			return taskRepository.findByPriority(priority, pageable);
+		} else {
+			return taskRepository.findAll(pageable);
+		}
+	}
+
+	@CacheEvict(value = { "tasksCache", "taskCache" }, allEntries = true)
+	public Task updateTask(UUID id, Task taskDetails) {
+		if (id == null) {
+			throw new IllegalArgumentException("Task ID cannot be null");
+		}
+
+		Task task = getTaskById(id);
+		if (task == null) {
+			throw new EntityNotFoundException("Task not found with ID: " + id);
+		}
+
+		if (taskDetails != null) {
+			if (taskDetails.getTitle() != null) {
+				task.setTitle(taskDetails.getTitle());
+			}
+			if (taskDetails.getDescription() != null) {
+				task.setDescription(taskDetails.getDescription());
+			}
+			if (taskDetails.getDueDate() != null) {
+				task.setDueDate(taskDetails.getDueDate());
+			}
+			if (taskDetails.getPriority() != null) {
+				task.setPriority(taskDetails.getPriority());
+			}
+			if (taskDetails.getStatus() != null) {
+				task.setStatus(taskDetails.getStatus());
+			}
+		}
+		return taskRepository.save(task);
+	}
+
+	@CacheEvict(value = { "taskCache", "tasksCache" }, allEntries = true)
+	public void deleteTask(UUID id) {
+		Task task = getTaskById(id);
+		taskRepository.delete(task);
+	}
+}

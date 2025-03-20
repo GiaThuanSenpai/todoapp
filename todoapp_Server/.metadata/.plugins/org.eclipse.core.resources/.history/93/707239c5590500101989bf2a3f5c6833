@@ -1,0 +1,20 @@
+package com.example.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.example.entities.Task;
+
+@Repository
+public interface TaskRepository extends JpaRepository<Task, UUID> {
+    Page<Task> findByStatus(Status status, Pageable pageable);
+    
+    Page<Task> findByPriority(Priority priority, Pageable pageable);
+    
+    Page<Task> findByStatusAndPriority(Status status, Priority priority, Pageable pageable);
+    
+    List<Task> findByDueDateBeforeAndStatusNot(LocalDateTime date, Status status);
+    
+    List<Task> findByDueDateBetweenAndStatusNot(LocalDateTime start, LocalDateTime end, Status status);
+}
+
